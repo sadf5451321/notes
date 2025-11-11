@@ -177,6 +177,52 @@ CREATE TABLE users (
     age INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+-- 创建玩家表
+CREATE TABLE player (
+    id INT PRIMARY KEY AUTO_INCREMENT COMMENT '玩家ID',
+    name VARCHAR(100) NOT NULL COMMENT '玩家姓名',
+    level INT DEFAULT 1 COMMENT '等级',
+    exp INT DEFAULT 0 COMMENT '经验值',
+    gold DECIMAL(10,2) DEFAULT 0 COMMENT '金币数量'
+);
+-- 修改字段默认值
+ALTER TABLE player MODIFY level INT DEFAULT 1;
+
+-- 查看表结构
+DESC player;
+
+-- 修改字段长度
+ALTER TABLE player MODIFY COLUMN name VARCHAR(200);
+
+-- 重命名字段
+ALTER TABLE player RENAME COLUMN name TO nick_name;
+
+-- 添加新字段
+ALTER TABLE player ADD COLUMN last_login DATETIME COMMENT '最后登录时间';
+
+-- 删除字段
+ALTER TABLE player DROP COLUMN last_login;
+
+
+-- 插入数据
+INSERT INTO player (name) VALUES ('Jaky');
+INSERT INTO player (name, level, exp, gold) VALUES ('Mike', 1, 2, 2.33);
+INSERT INTO player (name) VALUES ('Lacs'), ('Wang');
+INSERT INTO player VALUES (NULL, 'Zhang', 1, 5, 7.20);
+INSERT INTO player (name) VALUES ('Liu');
+
+-- 查询数据
+SELECT * FROM player;
+
+-- 更新数据
+UPDATE player SET level = 1 WHERE name = 'Wang';
+UPDATE player SET exp = 1;
+UPDATE player SET gold = 0 WHERE name = 'Mike';
+
+-- 删除数据
+DELETE FROM player WHERE gold = 0;
+
+
 
 -- 查看表结构
 DESCRIBE users;
@@ -215,7 +261,302 @@ DELETE FROM users WHERE name = '张三';
 DELETE FROM users WHERE age < 20;
 ```
 
+
+-- 删除表
+
+``
+DROP TABLE player;
+``
+
+
+### 导出数据
+``
+mysqldump -u root -p game > game.sql
+``
+
+### 导入数据
+
+``
+mysql -u root -p game < game.sq
+``
+
+
 ---
+
+### 表结构
+
+```
+"""
+@file: models.py
+@desc: 数据库模型文件
+@character: utf-8
+"""
+
+from sqlmodel import SQLModel, Field, Relationship
+from datetime import datetime
+from sqlalchemy import JSON, Column
+
+class BasicModel(SQLModel):
+    create_by: str = Field(description="创建者")
+    create_time: datetime = Field(default=datetime.utcnow(), description="创建时间")
+    update_by: str = Field(description="更新者")
+    update_time: datetime = Field(default=datetime.utcnow(), description="更新时间")
+
+
+class UserRoleLink(BasicModel, table=True):
+    user_id: str = Field(foreign_key="user.user_id", primary_key=True, description="用户ID")
+    role_id: str = Field(foreign_key="role.role_id", primary_key=True, description="角色ID")
+
+    user: "User" = Relationship(back_populates="user_role_links")
+    role: "Role" = Relationship(back_populates="user_links")
+
+
+class RoleAccessLink(BasicModel, table=True):
+    role_id: str = Field(foreign_key="role.role_id", primary_key=True, description="角色ID")
+    access_id: str = Field(foreign_key="access.access_id", primary_key=True, description="权限ID")
+
+    role: "Role" = Relationship(back_populates="access_links")
+    access: "Access" = Relationship(back_populates="access_role_links")
+
+
+class User(BasicModel, table=True):
+    user_id: str = Field(primary_key=True, description="用户ID,用户的唯一标识")
+    username: str = Field(description="用户名", index=True)
+    password: str = Field(description="密码")
+    user_status: int = Field(default=1, description="用户状态,0为禁用状态,1为可用状态,2表示正在骑行状态", index=True)
+
+    # 附加的属性
+    user_role_links: list[UserRoleLink] = Relationship(back_populates="user")
+    records: list["Record"] = Relationship(back_populates="user")
+
+
+class Role(BasicModel, table=True):
+    role_id: str = Field(primary_key=True, description="角色ID,角色的唯一标识")
+    role_name: str = Field(description="角色名")
+    role_desc: str | None = Field(description="角色描述", default=None)
+
+    user_links: list[UserRoleLink] = Relationship(back_populates="role")
+    access_links: list[RoleAccessLink] = Relationship(back_populates="role")
+
+
+class Access(BasicModel, table=True):
+    access_id: str = Field(primary_key=True, description="权限ID,权限的唯一标识")
+    access_name: str = Field(description="权限名")
+    access_desc: str | None = Field(description="权限描述", default=None)
+    access_url: str | None = Field(description="权限URL", default=None)
+    parent_id: str | None = Field(description="父亲ID", default=None)
+    is_menu: bool = Field(description="是否为菜单", default=False)
+    is_verify: bool = Field(description="是否需要验证", default=True)
+
+    access_role_links: list[RoleAccessLink] = Relationship(back_populates="access")
+
+
+class Machine(BasicModel, table=True):
+    machine_id: str = Field(primary_key=True, description="电动车ID,电动车的唯一标识")
+    machine_point: dict | None = Field(default=None, description="电动车位置", sa_column=Column(JSON))
+    machine_battery: int = Field(default=100, description="电动车电量")
+    status: int = Field(default=1, description="电动车状态,0为正在骑行中,1为空闲状态,2为损坏,3为正在停止")
+    machine_photo: str | None = Field(default=None, description="电动车照片")
+
+    area_id: str = Field(foreign_key="area.area_id", description="区域ID")
+    area: "Area" = Relationship(back_populates="machines")
+    records: list["Record"] = Relationship(back_populates="machine")
+
+
+class Area(BasicModel, table=True):
+    area_id: str = Field(primary_key=True, description="区域ID,区域的唯一标识")
+    area_name: str | None = Field(default=None, description="区域名")
+    area_desc: str | None = Field(default=None, description="区域描述")
+
+    machines: list[Machine] = Relationship(back_populates="area")
+
+
+class Record(BasicModel, table=True):
+    record_id: str = Field(primary_key=True, description="记录ID,记录的唯一标识")
+    start_time: datetime | None = Field(default=None, description="开始时间")
+    end_time: datetime | None = Field(default=datetime.utcnow(), description="结束时间")
+    stop_time: int = Field(default=0, description="停车时间")
+    consume_battery: int = Field(default=0, description="消耗电量")
+    tracejectory: dict | None = Field(default=None, description="轨迹", sa_column=Column(JSON))
+
+    # 附加属性
+    user_id: str = Field(foreign_key="user.user_id", description="用户ID")
+    user: User = Relationship(back_populates="records")
+    machine_id: str = Field(foreign_key="machine.machine_id", description="电动车ID")
+    machine: Machine = Relationship(back_populates="records")
+
+```
+
+
+
+
+
+
+``
+DELETE FROM record;
+DELETE FROM machine;
+DELETE FROM area;
+DELETE FROM userrolelink;
+DELETE FROM roleaccesslink;
+DELETE FROM access;
+DELETE FROM role;
+DELETE FROM user;
+``
+
+
+插入信息
+
+```
+INSERT INTO role (role_id, role_name, role_desc, create_by, create_time, update_by, update_time)
+VALUES
+('r_admin', '管理员', '系统管理员，拥有全部权限', 'system', NOW(), 'system', NOW()),
+('r_user', '普通用户', '注册用户，可租赁电动车', 'system', NOW(), 'system', NOW());
+
+INSERT INTO access (access_id, access_name, access_desc, access_url, parent_id, is_menu, is_verify, create_by, create_time, update_by, update_time)
+VALUES
+('a_dashboard', '查看控制台', '系统控制台界面', '/dashboard', NULL, TRUE, TRUE, 'system', NOW(), 'system', NOW()),
+('a_manage_user', '用户管理', '管理用户信息', '/user/manage', NULL, TRUE, TRUE, 'system', NOW(), 'system', NOW()),
+('a_view_machine', '查看电动车', '查看所有电动车状态', '/machine/view', NULL, TRUE, TRUE, 'system', NOW(), 'system', NOW()),
+('a_rent_machine', '租赁电动车', '用户租赁功能', '/machine/rent', NULL, FALSE, TRUE, 'system', NOW(), 'system', NOW());
+
+
+INSERT INTO user (user_id, username, password, user_status, create_by, create_time, update_by, update_time)
+VALUES
+('u_admin', 'admin', 'admin123', 1, 'system', NOW(), 'system', NOW()),
+('u_001', 'alice', 'alicepwd', 1, 'system', NOW(), 'system', NOW()),
+('u_002', 'bob', 'bobpwd', 1, 'system', NOW(), 'system', NOW());
+
+INSERT INTO userrolelink (user_id, role_id, create_by, create_time, update_by, update_time)
+VALUES
+('u_admin', 'r_admin', 'system', NOW(), 'system', NOW()),
+('u_001', 'r_user', 'system', NOW(), 'system', NOW()),
+('u_002', 'r_user', 'system', NOW(), 'system', NOW());
+
+
+INSERT INTO roleaccesslink (role_id, access_id, create_by, create_time, update_by, update_time)
+VALUES
+('r_admin', 'a_dashboard', 'system', NOW(), 'system', NOW()),
+('r_admin', 'a_manage_user', 'system', NOW(), 'system', NOW()),
+('r_admin', 'a_view_machine', 'system', NOW(), 'system', NOW()),
+('r_admin', 'a_rent_machine', 'system', NOW(), 'system', NOW()),
+('r_user', 'a_view_machine', 'system', NOW(), 'system', NOW()),
+('r_user', 'a_rent_machine', 'system', NOW(), 'system', NOW());
+
+
+INSERT INTO area (area_id, area_name, area_desc, create_by, create_time, update_by, update_time)
+VALUES
+('a001', '中央广场', '城市中心区共享车区域', 'system', NOW(), 'system', NOW()),
+('a002', '高校南门', '靠近学校的电动车点', 'system', NOW(), 'system', NOW());
+
+
+INSERT INTO machine (machine_id, machine_point, machine_battery, status, machine_photo, area_id, create_by, create_time, update_by, update_time)
+VALUES
+('m001', JSON_OBJECT('lng', 139.7514, 'lat', 35.6852), 95, 1, 'photo_m001.jpg', 'a001', 'system', NOW(), 'system', NOW()),
+('m002', JSON_OBJECT('lng', 139.7535, 'lat', 35.6861), 80, 1, 'photo_m002.jpg', 'a001', 'system', NOW(), 'system', NOW()),
+('m003', JSON_OBJECT('lng', 139.7580, 'lat', 35.6820), 60, 0, 'photo_m003.jpg', 'a002', 'system', NOW(), 'system', NOW());
+
+INSERT INTO record (record_id, start_time, end_time, stop_time, consume_battery, tracejectory, user_id, machine_id, create_by, create_time, update_by, update_time)
+VALUES
+('rec001', NOW() - INTERVAL 2 HOUR, NOW() - INTERVAL 1 HOUR, 10, 15, 
+ JSON_OBJECT('points', JSON_ARRAY(
+   JSON_OBJECT('lng', 139.7514, 'lat', 35.6852),
+   JSON_OBJECT('lng', 139.7535, 'lat', 35.6861)
+ )), 
+ 'u_001', 'm001', 'u_001', NOW(), 'u_001', NOW()),
+
+('rec002', NOW() - INTERVAL 3 HOUR, NOW() - INTERVAL 2 HOUR, 5, 10,
+ JSON_OBJECT('points', JSON_ARRAY(
+   JSON_OBJECT('lng', 139.7535, 'lat', 35.6861),
+   JSON_OBJECT('lng', 139.7580, 'lat', 35.6820)
+ )), 
+ 'u_002', 'm002', 'u_002', NOW(), 'u_002', NOW());
+
+```
+
+
+🔍 🔎 10️⃣ 常见查询示例
+查询所有用户
+SELECT * FROM user;
+
+模糊查询示例
+
+```
+SELECT * FROM user WHERE user.username LIKE "admi%";
+SELECT * FROM user WHERE user.username LIKE "%b%";
+SELECT * FROM user WHERE user.username LIKE "_lice";
+SELECT * FROM user WHERE user.username LIKE "__ice";
+SELECT * FROM user WHERE user.username REGEXP "[a,b]";
+```
+
+空值与排序
+```
+SELECT * FROM user WHERE password IS NOT NULL;
+SELECT * FROM user WHERE password = '';
+SELECT * FROM user WHERE password = '' OR password IS NULL;
+SELECT * FROM user ORDER BY password;
+SELECT * FROM user ORDER BY password DESC;
+```
+
+聚合查询
+```
+SELECT COUNT(*) FROM user;
+SELECT AVG(user.user_status) FROM user;
+SELECT * FROM role GROUP BY role_name;
+```
+
+🔗 11️⃣ 表连接示例
+区域与电动车
+```
+SELECT * FROM area LEFT JOIN machine ON machine.area_id = area.area_id;
+SELECT * FROM area a, machine m WHERE a.area_id = m.area_id;
+-- 笛卡尔积 + 过滤
+SELECT * FROM area, machine;
+```
+电动车与骑行记录
+```
+SELECT * FROM machine LEFT JOIN record ON machine.machine_id = record.machine_id;
+SELECT * FROM machine INNER JOIN record ON machine.machine_id = record.machine_id;
+```
+👤 12️⃣ 查询用户角色
+```
+SELECT 
+    u.user_id AS user_id,
+    u.username AS username,
+    r.role_id AS role_id,
+    r.role_name AS role_name
+FROM user AS u
+JOIN userrolelink AS ur ON u.user_id = ur.user_id
+JOIN role AS r ON ur.role_id = r.role_id;
+```
+
+或筛选特定角色：
+``
+SELECT 
+    u.user_id AS user_id,
+    u.username AS username,
+    r.role_name AS role_name
+FROM user AS u
+JOIN userrolelink AS ur ON u.user_id = ur.user_id
+JOIN role AS r ON ur.role_id = r.role_id
+WHERE r.role_name = '管理员';
+``
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## Python 集成
 
@@ -232,6 +573,11 @@ uv add mysql-connector-python
 # 或者
 uv add pymysql
 ```
+
+
+
+
+
 
 ### 使用 mysql-connector-python
 

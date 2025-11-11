@@ -79,7 +79,7 @@ uv venv
 使用指定 Python 版本：
 
 ```bash
-uv venv --python 3.12
+uv venv --python 3.11
 ```
 
 #### 示例输出：
