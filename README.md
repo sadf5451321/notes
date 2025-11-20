@@ -33,20 +33,36 @@
   - 进程和服务管理
   - 实用技巧汇总
 
-### 🐍 Python 工具
+### 🐍 Python 与开发工具
 - **[UV 使用指南](./uv.md)**
   - 极速 Python 包管理器
   - 项目创建与初始化
   - 虚拟环境管理
   - 依赖管理最佳实践
   - 工具链集成
+- **[Git 使用教程总结](./git.md)**
+  - 基础概念与安装配置
+  - 常用命令速查表
+  - 分支、合并与冲突处理
+  - 常见开发流程示例
+- **[GitHub 搜索技巧](./github.md)**
+  - 高效组合搜索语法
+  - 实用过滤条件集合
+- **[Cursor / VS Code 环境选择](./cursor.md)**
+  - 选择虚拟环境的快速指引
+  - 常见问题排查提示
 
-### 📖 学习计划
+### 🤖 AI 与大模型
+- **[vLLM 配置与使用指南](./vllm.md)**
+  - Conda 环境创建
+  - vLLM 安装与测试
+  - Hugging Face 代理配置
 - **[AI 大模型应用开发学习计划](./笔记.md)**
   - 16 周完整学习路线
   - FastAPI + RAG + Agent 技术栈
   - 从后端到全栈的完整路径
   - 实战项目推荐
+
 
 ---
 
@@ -55,6 +71,7 @@
 ✅ **结构清晰**：每个文档都有完整的目录导航  
 ✅ **示例丰富**：包含大量实际使用示例  
 ✅ **问题导向**：提供常见问题的解决方案  
+✅ **场景覆盖广**：涵盖数据库、系统、工具、AI 等核心主题  
 ✅ **持续更新**：定期补充和完善内容  
 
 ---
@@ -66,7 +83,8 @@ graph TB
     A[技术笔记] --> B[数据库]
     A --> C[系统命令]
     A --> D[开发工具]
-    A --> E[学习路线]
+    A --> E[AI 与大模型]
+    A --> F[资料与模板]
     
     B --> B1[MongoDB]
     B --> B2[MySQL]
@@ -76,11 +94,14 @@ graph TB
     
     D --> D1[UV - Python 包管理]
     D --> D2[Git]
-    D --> D3[Docker]
+    D --> D3[GitHub]
+    D --> D4[Cursor]
+    D --> D5[UV]
     
-    E --> E1[AI 大模型开发]
-    E --> E2[FastAPI]
-    E --> E3[RAG & Agent]
+    E --> E1[vLLM]
+    E --> E2[AI 学习计划]
+    
+    F --> F1[个人简历示例]
 ```
 
 ---
@@ -127,6 +148,11 @@ graph TB
 ---
 
 ## 🔄 更新日志
+
+### 2025-11-13
+- 📚 README 导航结构扩充，补充 Git、GitHub、Cursor、vLLM 等文档链接
+- 🧭 Mermaid 技术栈图更新，反映当前文档覆盖范围
+- 🧾 新增简历模板分类，方便快速查找
 
 ### 2025-10-16
 - ✨ 完善 MongoDB 安装指南，新增 Python 集成示例
@@ -195,7 +221,7 @@ graph TB
 git clone <repository-url>
 
 # 或者直接在 VS Code 中打开此文件夹
-code /path/to/技术笔记笔记
+code /path/to/technical_notes
 ```
 
 ---
@@ -203,7 +229,7 @@ code /path/to/技术笔记笔记
 ## 📧 联系方式
 
 如有问题或建议，欢迎联系：
-- 📧 Email: your.email@example.com
+- 📧 Email: your.email@example.com （可根据个人情况替换）
 - 🐙 GitHub: [@yourusername](https://github.com/yourusername)
 
 ---
